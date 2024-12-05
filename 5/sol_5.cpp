@@ -1,328 +1,116 @@
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_set>
 #include <algorithm>
 #include <limits>
 
 #include "../utility.h"
 
-using PlantNum = std::uint64_t;
-
-struct PlantRange
-{
-    PlantNum start_val;
-    PlantNum end_val;
-};
-
-class PlantingMap 
-{
-public:
-    using SrcNum = PlantNum;
-    using DstNum = PlantNum;
-    using Range = PlantNum;
-
-    PlantNum get_mapped_num(PlantNum src_num) const;
-    std::vector<PlantRange> get_mapped_ranges(PlantRange src_range) const;
-
-
-    std::map<SrcNum,std::pair<DstNum,Range>> src_range_map;
-    std::string src_type_name;
-    std::string dst_type_name;
-};
-
 struct InputDataDay5_1
 {
-    std::map<std::string,PlantingMap> planting_maps;
-    std::vector<PlantNum> seed_nums;
+    std::unordered_set<Point<int>, Point<int>::HashFunction> reversed_ordering_rules; // contains the ordering rules in reversed form
+    std::vector<std::vector<int>> page_updates;
 };
 
-struct InputDataDay5_2
+InputDataDay5_1 get_input_5_1(const std::string &file_path);
+std::pair<std::vector<std::vector<int>>, std::vector<std::vector<int>>> get_correct_page_updates(const InputDataDay5_1 &input_data) ;
+std::vector<int> fix_update(std::vector<int> update_nums, const InputDataDay5_1& input_data);
+
+int sol_5_1(const std::string &file_path)
 {
-    std::map<std::string,PlantingMap> planting_maps;
-    std::vector<PlantRange> seed_ranges;
-};
+    uint64_t middle_num_sum{ };
+    InputDataDay5_1 data_in = get_input_5_1(file_path);
+    auto [correct_updates,incorrect_updates] = get_correct_page_updates(data_in);
+    for (const auto& update_nums : correct_updates) {
+        middle_num_sum += update_nums[update_nums.size()/2];
+    }
 
-InputDataDay5_1 get_planting_maps(const std::string &file_path);
-InputDataDay5_2 get_planting_maps_2(const std::string &file_path);
-std::vector<PlantNum> get_seed_locations(const InputDataDay5_1 &input_data);
-PlantNum get_lowest_seed_location(const InputDataDay5_2 &input_data);
-
-PlantNum sol_5_1(const std::string &file_path)
-{
-    InputDataDay5_1 data_in = get_planting_maps(file_path);
-    std::vector<PlantNum> seed_locations = get_seed_locations(data_in);
-
-    return *std::min_element(seed_locations.begin(), seed_locations.end());
+    return middle_num_sum;
 }
 
 
 int sol_5_2(const std::string &file_path)
 {
-    InputDataDay5_2 data_in = get_planting_maps_2(file_path);
+    uint64_t middle_num_sum{ };
+    InputDataDay5_1 data_in = get_input_5_1(file_path);
+    auto [correct_updates,incorrect_updates] = get_correct_page_updates(data_in);
 
-    return get_lowest_seed_location(data_in);
+    for (auto update_nums : incorrect_updates) {
+        auto fixed_update_nums = fix_update(update_nums, data_in);
+        middle_num_sum += fixed_update_nums[update_nums.size()/2];
+    }
+    return middle_num_sum;
 }
 
-PlantNum get_lowest_seed_location(const InputDataDay5_2 &input_data)
-{
-    PlantNum min_location{ std::numeric_limits<PlantNum>::max() };
-    auto &seed_ranges_vec = input_data.seed_ranges;
-    auto &plant_mappings = input_data.planting_maps;
+// switch numbers whenever a order rule is violated
+std::vector<int> fix_update(std::vector<int> update_nums, const InputDataDay5_1& input_data) {
 
+    for (int i=0; i<update_nums.size(); ++i) {
+        for (int j=i+1; j<update_nums.size(); ++j) {
+            Point<int> page_pair{ update_nums[i], update_nums[j] };
 
-    for (auto seed_range : seed_ranges_vec)
-    {
-        std::string cur_name = "seed";
-        std::vector<PlantRange> mapped_ranges{ seed_range };
-        while (cur_name != "location")
-        {
-            auto &cur_mapping = plant_mappings.at(cur_name);
-            auto nxt_target_type_name = cur_mapping.dst_type_name;
-            std::vector<PlantRange> new_mapped_ranges;
-            for (auto &range : mapped_ranges)
-            {
-                std::vector<PlantRange> tmp_ranges = cur_mapping.get_mapped_ranges(range);
-                new_mapped_ranges.insert(new_mapped_ranges.begin(), tmp_ranges.begin(), tmp_ranges.end());
+            // search for rule violations and switch the two numbers
+            if (input_data.reversed_ordering_rules.find(page_pair) != input_data.reversed_ordering_rules.end()) {
+                update_nums[i] = update_nums[j];
+                update_nums[j] = page_pair.x;
             }
-
-            cur_name = nxt_target_type_name;
-            mapped_ranges = new_mapped_ranges;
         }
-        for (auto new_range : mapped_ranges)
-        {
-            if (new_range.start_val < min_location) min_location = new_range.start_val;
-
-        }
-
     }
 
-    return min_location;
-
-
+    return update_nums;
 }
 
-std::vector<PlantRange> PlantingMap::get_mapped_ranges(PlantRange src_range) const
+std::pair<std::vector<std::vector<int>>, std::vector<std::vector<int>>> get_correct_page_updates(const InputDataDay5_1 &input_data) 
 {
-    std::vector<PlantRange> mapped_ranges;
+    std::vector<std::vector<int>> correct_updates{ };
+    std::vector<std::vector<int>> incorrect_updates{ };
 
-    while (src_range.start_val < src_range.end_val) 
-    {
-        PlantRange new_mapped_range{};
-        // map is sorted in ascending order -> the key before result of upper_bound() is the interesting one
-        auto upper_range = src_range_map.upper_bound(src_range.start_val);
+    for (const auto& update_nums : input_data.page_updates) {
+        bool is_correct{ true };
+        for (int i=0; i<update_nums.size() && is_correct; ++i) {
+            for (int j=i+1; j<update_nums.size(); ++j) {
+                Point<int> page_pair{ update_nums[i], update_nums[j] };
 
-        if (upper_range != src_range_map.begin())
-        {
-            auto lower_range = upper_range;
-            --lower_range;
-            auto mapping_len = lower_range->second.second;
-            auto mapping_end_val = lower_range->first + mapping_len-1;
-            auto dst_start = lower_range->second.first;
-            auto mapping_start = lower_range->first;
-
-            if (src_range.start_val < mapping_end_val) // src_range.start_val is a mapped value
-            {
-                // map start value
-                new_mapped_range.start_val = dst_start + (src_range.start_val - mapping_start);
-                // end value is the smaller value of either mapping range or src_range
-                auto src_end_val = src_range.end_val < mapping_end_val ? src_range.end_val : mapping_end_val;
-                new_mapped_range.end_val = dst_start + (src_end_val - mapping_start);
-                mapped_ranges.push_back(new_mapped_range);
-                // adapt src_range.start_val
-                src_range.start_val = src_end_val+1;
-            }
-            else
-            { // src_range is not inside lower_range but starts after lower_range and before upper_range (might be end())
-                if (upper_range == src_range_map.end()) // src_range starts after any mapping range
-                {
-                    mapped_ranges.push_back(src_range);
-                    return mapped_ranges;
+                // search for a rule violation
+                if (input_data.reversed_ordering_rules.find(page_pair) != input_data.reversed_ordering_rules.end()) {
+                    is_correct = false;
+                    break;
                 }
-                new_mapped_range.start_val = src_range.start_val;
-
-                // end is the smaller value of either 
-                auto src_end_val = src_range.end_val < upper_range->first ? src_range.end_val : upper_range->first-1;
-                new_mapped_range.end_val = src_end_val;
-                mapped_ranges.push_back(new_mapped_range);
-                src_range.start_val = src_end_val+1;
             }
         }
-        else
-        {
-            // src_range.start_val is before any mapping ranges -> end of new range is either end of current src_range or start of a mapping
-            new_mapped_range.start_val = src_range.start_val;
-            auto src_end_val = src_range.end_val < upper_range->first ? src_range.end_val : upper_range->first-1;
-            new_mapped_range.end_val = src_end_val;
-            mapped_ranges.push_back(new_mapped_range);
-            src_range.start_val = src_end_val+1;
-        }
+
+        // store vector in respective container
+        if (is_correct) correct_updates.push_back(update_nums);
+        else incorrect_updates.push_back(update_nums);
     }
 
-    return mapped_ranges;
+    return { correct_updates, incorrect_updates };
 }
 
-std::vector<PlantNum> get_seed_locations(const InputDataDay5_1 &input_data)
+InputDataDay5_1 get_input_5_1(const std::string &file_path)
 {
-    std::vector<PlantNum> dst_locations;
-    auto &seeds_vec = input_data.seed_nums;
-    auto &plant_mappings = input_data.planting_maps;
-
-
-    for (auto seed : seeds_vec)
-    {
-        std::string cur_name = "seed";
-        PlantNum mapped_val{ seed };
-        while (cur_name != "location")
-        {
-            auto &cur_mapping = plant_mappings.at(cur_name);
-            auto nxt_target_type_name = cur_mapping.dst_type_name;
-
-            mapped_val = cur_mapping.get_mapped_num(mapped_val);
-
-            cur_name = nxt_target_type_name;
-        }
-        dst_locations.push_back(mapped_val);
-    }
-
-    return dst_locations;
-}
-
-PlantNum PlantingMap::get_mapped_num(PlantNum src_num) const
-{
-    
-    // map is sorted in ascending order -> the key before result of upper_bound() is the interesting one
-    auto upper_elem = src_range_map.upper_bound(src_num);
-
-    if (upper_elem != src_range_map.begin())
-    {
-        --upper_elem;
-        auto range = upper_elem->second.second;
-        auto dst_start = upper_elem->second.first;
-        if (src_num < upper_elem->first + range) // src_num is a mapped value
-        {
-            return dst_start + (src_num-upper_elem->first);
-        }
-    }
-
-    // in all other cases src_num is not a mapped value -> return src_num
-    return src_num;
-}
-
-
-PlantingMap create_planting_map(const std::string &map_str, const std::vector<std::string> &mapping_data)
-{
-    PlantingMap new_map;
-
-    auto name_split = split_string(map_str, "-");
-    new_map.src_type_name = name_split[0];
-    auto dest_name = name_split[2].substr(0,name_split[2].length()-5); // remove last 5 letters ( map:)
-    new_map.dst_type_name = dest_name;
-
-    for (auto &elem : mapping_data)
-    {
-        auto num_vec = parse_string_to_number_vec<PlantNum>(elem);
-        new_map.src_range_map[num_vec[1]] = { num_vec[0], num_vec[2]};
-    }
-
-    return new_map;
-}
-
-
-
-InputDataDay5_2 get_planting_maps_2(const std::string &file_path)
-{
-    InputDataDay5_2 input_data;
+    InputDataDay5_1 input_data{ };
 
     std::fstream input_file;
     input_file.open(file_path,std::ios::in);
     if (input_file.is_open())
     {
-        std::string input_line;
+        std::string input_line{ "start" };
 
-        // get seeds ranges
-        getline(input_file, input_line);
-        auto seed_nums = parse_string_to_number_vec<PlantNum>(input_line);
-        for (int i=0; i<seed_nums.size(); i+=2)
+        // get page orderings until an empty line is hit
+        while(getline(input_file, input_line) && input_line != "")
         {
-            input_data.seed_ranges.push_back(PlantRange{seed_nums[i], seed_nums[i]+seed_nums[i+1]-1});
+            auto nums = parse_string_to_number_vec<int>(input_line);
+            input_data.reversed_ordering_rules.insert({ nums[1], nums[0] });
         }
-        getline(input_file, input_line); // next line is empty
 
-        // iterate through maps
-        std::vector<std::string> mapping_data;
-        std::string map_name;
-        getline(input_file, map_name);
-
+        // get updates
         while(getline(input_file, input_line))
         { 
-            if ("" == input_line && mapping_data.size() > 0)
-            {
-                auto plant_map = create_planting_map(map_name,mapping_data);
-                input_data.planting_maps[plant_map.src_type_name] = plant_map;
-
-                // read name of next mapping and clear old mapping data
-                getline(input_file, map_name);
-                mapping_data.clear();
-            }
-            else
-            {
-                mapping_data.push_back(input_line);
-            }
+            auto nums = parse_string_to_number_vec<int>(input_line);
+            input_data.page_updates.push_back(nums);
         }
-        // create last mapping if file does not end with empty line
-        if (mapping_data.size() > 0)
-        {
-            auto plant_map = create_planting_map(map_name,mapping_data);
-            input_data.planting_maps[plant_map.src_type_name] = plant_map;
-        }
-        input_file.close();   
-    }
 
-    return input_data;
-}
-
-InputDataDay5_1 get_planting_maps(const std::string &file_path)
-{
-    InputDataDay5_1 input_data;
-
-    std::fstream input_file;
-    input_file.open(file_path,std::ios::in);
-    if (input_file.is_open())
-    {
-        std::string input_line;
-
-        // get seeds number
-        getline(input_file, input_line);
-        input_data.seed_nums = parse_string_to_number_vec<PlantNum>(input_line);
-        getline(input_file, input_line); // next line is empty
-
-        // iterate through maps
-        std::vector<std::string> mapping_data;
-        std::string map_name;
-        getline(input_file, map_name);
-
-        while(getline(input_file, input_line))
-        { 
-            if ("" == input_line && mapping_data.size() > 0)
-            {
-                auto plant_map = create_planting_map(map_name,mapping_data);
-                input_data.planting_maps[plant_map.src_type_name] = plant_map;
-
-                // read name of next mapping and clear old mapping data
-                getline(input_file, map_name);
-                mapping_data.clear();
-            }
-            else
-            {
-                mapping_data.push_back(input_line);
-            }
-        }
-        // create last mapping if file does not end with empty line
-        if (mapping_data.size() > 0)
-        {
-            auto plant_map = create_planting_map(map_name,mapping_data);
-            input_data.planting_maps[plant_map.src_type_name] = plant_map;
-        }
         input_file.close();   
     }
 

@@ -1,201 +1,339 @@
 #include <string>
-#include <array>
-#include <map>
-#include <numeric>
+#include <ostream>
+#include <unordered_map>
 
 #include "../utility.h"
 
 namespace {
 
-    constexpr char ROUND_ROCK{ 'O' };
-    constexpr char CUBE_ROCK{ '#' };
-    constexpr char EMPTY{ '.' };
-    constexpr std::uint64_t CYCLE_NUM{1'000'000'000ull };
-    using RockFormation = std::vector<std::string>;
+    enum TDir {
+        Up, 
+        Right, 
+        Down, 
+        Left
+    };
+
+    constexpr char FREE{ '.' };
+    constexpr char WALL{ '#' };
+    constexpr char BOX{ 'O' };
+    constexpr char L_BOX{ '[' };
+    constexpr char R_BOX{ ']' };
+    constexpr std::uint32_t ROW_FACTOR{ 100ul };
+    // const std::vector<std::vector<int>> DIR_VEC{ {-1,0}, {0,1}, {1,0}, {0,-1} }; // maps each of the TDirD6 enum values to a direction
+    const std::unordered_map<char, Point<int>> DIR_MAP{ {'^',{-1,0}}, {'>',{0,1}}, {'v',{1,0}}, {'<',{0,-1}} }; // maps each of the direction chars to a direction
+
+    using RobotState = Point<int>;
+    using WareHouse = std::vector<std::string>;
+    using BoxPos = Point<int>; 
 };
 
-RockFormation tilt_north(const RockFormation &rock);
-RockFormation tilt_west(const RockFormation &rock);
-RockFormation tilt_south(const RockFormation &rock);
-RockFormation tilt_east(const RockFormation &rock);
-uint32_t calc_load(const RockFormation &rock);
-void do_cycle(RockFormation &rock);
+std::pair<WareHouse, std::string> get_data(const std::string& file_path);
+std::pair<WareHouse, std::string> get_data_2(const std::string& file_path);
+RobotState get_robot_state(const WareHouse& warehouse);
+uint32_t calc_gps_sum(const WareHouse &warehouse);
+uint32_t calc_gps_sum_2(const WareHouse &warehouse);
+RobotState do_move(WareHouse &warehouse, RobotState r_state, char move);
+RobotState do_move_2(WareHouse &warehouse, RobotState r_state, char move);
+bool move_hoz(WareHouse& warehouse, Point<int> p, Point<int> dir);
+bool move_vert(WareHouse& warehouse, BoxPos b, Point<int> dir);
+bool move_box(WareHouse& warehouse, Point<int> b, Point<int> dir);
 
-void print_rock(const RockFormation &rock);
+std::ostream& print_warehouse(std::ostream &out, const WareHouse &warehouse, Point<int> pos);
 
-int sol_15_1(const std::string &file_path)
+uint32_t sol_15_1(const std::string &file_path)
 {
-    RockFormation rock_form = read_string_vec_from_file(file_path);
-    auto tilted_rock_form = tilt_north(rock_form);
-    print_rock(tilted_rock_form);
-    return calc_load(tilted_rock_form);
+    auto [warehouse, movements] = get_data(file_path);
+    RobotState r_state = get_robot_state(warehouse);
+    // marks start state as free
+    warehouse[r_state.x][r_state.y] = FREE;
+
+    for (auto move : movements) {
+        r_state = do_move(warehouse, r_state, move);
+    }
+
+    return calc_gps_sum(warehouse);
 }
 
 
-int sol_15_2(const std::string &file_path)
+uint32_t sol_15_2(const std::string &file_path)
 {
-    RockFormation rock_form = read_string_vec_from_file(file_path);
-    std::vector<RockFormation> cycle_buffer{ rock_form };
-    std::uint64_t cycle_len{ 0ull };
-    bool cycle_found{ false };
-    size_t i{ 0ul };
+    auto [warehouse, movements] = get_data_2(file_path);
+    RobotState r_state = get_robot_state(warehouse);
+    // marks start state as free
+    warehouse[r_state.x][r_state.y] = FREE;
 
-    // try to find a cyclic behaviour in the rock formations
-    for (; i<CYCLE_NUM; ++i)
+    for (auto move : movements) {
+        r_state = do_move_2(warehouse, r_state, move);
+    }
+
+    // print_warehouse(std::cout, warehouse, r_state);
+    return calc_gps_sum_2(warehouse);
+}
+
+bool move_box(WareHouse& warehouse, Point<int> b, Point<int> dir) {
+    if (dir.x == 0) {   
+        if (move_hoz(warehouse, b, dir)) {
+            warehouse[b.x][b.y] = FREE; 
+            return true;
+        }
+    }
+    else {
+        if (warehouse[b.x][b.y] == R_BOX) {
+            b.y -= 1; // box is identified by its left coord
+        }
+        WareHouse copy{ warehouse };
+        if (move_vert(warehouse, b, dir)) {
+            warehouse[b.x][b.y] = FREE; 
+            warehouse[b.x][b.y+1] = FREE; // also closing bracket is freed
+            return true;
+        }
+        else warehouse = copy;
+    }
+    return false;
+}
+
+bool move_vert(WareHouse& warehouse, BoxPos b, Point<int> dir) {
+    auto nxt_l = b + dir;
+    auto nxt_r = BoxPos{ nxt_l.x, nxt_l.y+1 };
+
+    if (warehouse[nxt_l.x][nxt_l.y] == FREE) {
+        if (warehouse[nxt_r.x][nxt_r.y] == FREE || 
+            (warehouse[nxt_r.x][nxt_r.y] == L_BOX && move_vert(warehouse, nxt_r, dir))) {
+            if (warehouse[nxt_r.x][nxt_r.y] == L_BOX) {
+                warehouse[nxt_r.x][nxt_r.y+1] = FREE;
+            }
+            warehouse[nxt_l.x][nxt_l.y] = L_BOX;
+            warehouse[nxt_r.x][nxt_r.y] = R_BOX;
+            return true;
+        }
+        else return false;
+    }
+    else if (warehouse[nxt_l.x][nxt_l.y] == R_BOX && move_vert(warehouse, BoxPos(nxt_l.x, nxt_l.y-1), dir)) { 
+        if (warehouse[nxt_r.x][nxt_r.y] ==  FREE || 
+            (warehouse[nxt_r.x][nxt_r.y] == L_BOX && move_vert(warehouse, nxt_r, dir))) {
+            if (warehouse[nxt_r.x][nxt_r.y] == L_BOX) {
+                warehouse[nxt_r.x][nxt_r.y+1] = FREE;
+            }
+            warehouse[nxt_l.x][nxt_l.y-1] = FREE;
+            warehouse[nxt_l.x][nxt_l.y] = L_BOX;
+            warehouse[nxt_r.x][nxt_r.y] = R_BOX;
+            return true;            
+        }
+        else return false;
+    }
+    else if (warehouse[nxt_l.x][nxt_l.y] == L_BOX && move_vert(warehouse, nxt_l, dir)) {
+        warehouse[nxt_l.x][nxt_l.y] = L_BOX;
+        warehouse[nxt_r.x][nxt_r.y] = R_BOX;
+        return true;            
+    }
+
+    return false;
+}
+
+bool move_hoz(WareHouse& warehouse, Point<int> p, Point<int> dir) {
+    auto nxt_pos = p + dir;
+
+    if (warehouse[nxt_pos.x][nxt_pos.y] == FREE) {
+        warehouse[nxt_pos.x][nxt_pos.y] = warehouse[p.x][p.y];
+        return true;
+    }
+    
+    if (warehouse[nxt_pos.x][nxt_pos.y] == L_BOX || warehouse[nxt_pos.x][nxt_pos.y] == R_BOX) {
+        if (move_hoz(warehouse, nxt_pos, dir)) {
+            warehouse[nxt_pos.x][nxt_pos.y] = warehouse[p.x][p.y];
+            return true;
+        }
+        else return false;
+    }
+    else return false;
+}
+
+RobotState do_move_2(WareHouse &warehouse, RobotState r_state, char move)
+{
+    auto dir = DIR_MAP.at(move);
+    auto nxt_pos{ r_state + dir };
+    auto tmp{ r_state };
+
+    switch (warehouse[nxt_pos.x][nxt_pos.y])
     {
-        do_cycle(rock_form);
-        for (int j=cycle_buffer.size()-1; j>-1; --j)
+    case FREE:
+        return nxt_pos;
+        break;
+    case R_BOX:
+        [[fallthrough]]
+    case L_BOX:
+        // check in current direction which tile comes after all boxes
+        if (move_box(warehouse, nxt_pos, dir)) {
+            return nxt_pos;
+        }
+        else return r_state;
+        break;
+    case WALL:
+        return r_state;
+        break;
+    
+    default:
+        std::cout << warehouse[nxt_pos.x][nxt_pos.y] << std::endl;
+        throw std::runtime_error("Invalid tile in WareHouse found: " + warehouse[nxt_pos.x][nxt_pos.y]);
+        break;
+    }
+
+}
+
+RobotState do_move(WareHouse &warehouse, RobotState r_state, char move)
+{
+    auto dir = DIR_MAP.at(move);
+    auto nxt_pos{ r_state + dir };
+    auto tmp{ r_state };
+
+    switch (warehouse[nxt_pos.x][nxt_pos.y])
+    {
+    case FREE:
+        return nxt_pos;
+        break;
+    case BOX:
+        // check in current direction which tile comes after all boxes
+        tmp = nxt_pos + dir;
+        while (warehouse[tmp.x][tmp.y] == BOX) tmp = tmp + dir;
+        if (warehouse[tmp.x][tmp.y] == WALL) return r_state;
+        else {
+            // FREE: boxes are moved
+            warehouse[tmp.x][tmp.y] = BOX;
+            warehouse[nxt_pos.x][nxt_pos.y] = FREE;
+            return nxt_pos;
+        }
+        break;
+    case WALL:
+        return r_state;
+        break;
+    
+    default:
+        std::cout << warehouse[nxt_pos.x][nxt_pos.y] << std::endl;
+        throw std::runtime_error("Invalid tile in WareHouse found: " + warehouse[nxt_pos.x][nxt_pos.y]);
+        break;
+    }
+
+}
+
+uint32_t calc_gps_sum(const WareHouse &warehouse)
+{
+    std::uint32_t gps_sum{ 0ul };
+    for (size_t row=0; row<warehouse.size(); ++row)
+    {
+        for (size_t col=0; col<warehouse[row].length(); ++col)
         {
-            if (rock_form == cycle_buffer[j]) 
-            {
-                cycle_len = cycle_buffer.size() - j;
-                cycle_found = true;
-                break;
+            if (BOX == warehouse[row][col]) gps_sum += ROW_FACTOR*row + col;
+        }
+    }
+
+    return gps_sum;
+}
+uint32_t calc_gps_sum_2(const WareHouse &warehouse)
+{
+    std::uint32_t gps_sum{ 0ul };
+    for (size_t row=0; row<warehouse.size(); ++row)
+    {
+        for (size_t col=0; col<warehouse[row].length(); ++col)
+        {
+            if (L_BOX == warehouse[row][col]) gps_sum += ROW_FACTOR*row + col;
+        }
+    }
+
+    return gps_sum;
+}
+
+RobotState get_robot_state(const WareHouse& warehouse) {
+    for (int i=0; i<warehouse.size(); ++i) {
+        for (int j=0; j<warehouse.at(i).size(); ++j) {
+            if (warehouse.at(i).at(j) == '@') {
+                return RobotState{ i,j };
             }
         }
-        if (cycle_found) break;
-        cycle_buffer.push_back(rock_form);
     }
 
-    // increase i by 1 so it corresponds to the number of already done cycles
-    ++i;
-    std::uint64_t open_cycles = (CYCLE_NUM - i) % cycle_len;
-    for (i=0; i<open_cycles; ++i) 
-    {
-        do_cycle(rock_form);
-    }
-
-    return calc_load(rock_form);
+    throw std::runtime_error("Failed to find start position!");
 }
 
-uint32_t calc_load(const RockFormation &rock)
+std::ostream& print_warehouse(std::ostream &out, const WareHouse &warehouse, Point<int> pos)
 {
-    std::uint32_t load{ 0ul };
-    std::uint32_t weight_factor{ rock.size() };
-    for (size_t row=0; row<rock.size(); ++row)
+    out << "\n";
+    WareHouse cp{ warehouse };
+    cp[pos.x][pos.y] = '@';
+    for (const auto & row : cp)
     {
-        for (size_t col=0; col<rock[row].length(); ++col)
+        out << row << "\n";
+    }
+    out << "\n";
+}
+
+std::pair<WareHouse, std::string> get_data_2(const std::string& file_path)
+{
+    WareHouse warehouse_layout{};
+    std::string movements{ };
+    std::fstream input_file;
+    input_file.open(file_path,std::ios::in);
+    if (input_file.is_open())
+    {
+        std::string input_line;
+        // read warehouse layout
+        while(getline(input_file, input_line))
         {
-            if (ROUND_ROCK == rock[row][col]) load += weight_factor;
-        }
-        --weight_factor;
-    }
-
-    return load;
-}
-
-void do_cycle(RockFormation &rock)
-{
-    rock = tilt_north(rock);
-    rock = tilt_west(rock);
-    rock = tilt_south(rock);
-    rock = tilt_east(rock);
-}
-
-/* 
-Idea is to process each column and inside a column go from top to bottom
-Whenever a round rock is hit move it upwards as long as empty spaces are above 
-*/
-RockFormation tilt_north(const RockFormation &rock)
-{
-    RockFormation new_rock{ rock };
-
-    for (int row=0; row<new_rock.size(); ++row)
-    {
-        for (int col=0; col<new_rock[row].length(); ++col)
-        {
-            if (ROUND_ROCK == new_rock[row][col])
-            {
-                auto rock_end_pos{ row };
-                while (rock_end_pos-1 >= 0 && EMPTY == new_rock[rock_end_pos-1][col])
+            if (input_line == "") break;
+            std::string tmp{ };
+            for (auto c : input_line) {
+                switch (c)
                 {
-                    --rock_end_pos;
+                case BOX:
+                    tmp.push_back(L_BOX);
+                    tmp.push_back(R_BOX);
+                    break;
+                case '@':
+                    tmp.push_back(c);
+                    tmp.push_back(FREE);
+                    break;
+                
+                default:
+                    tmp.push_back(c);
+                    tmp.push_back(c);
                 }
-                new_rock[row][col] = EMPTY;
-                new_rock[rock_end_pos][col] = ROUND_ROCK;
             }
+            warehouse_layout.push_back(tmp);
         }
-    }
 
-    return new_rock;
-}
-
-RockFormation tilt_west(const RockFormation &rock)
-{
-    RockFormation new_rock{ rock };
-
-    for (int row=0; row<new_rock.size(); ++row)
-    {
-        for (int col=0; col<new_rock[row].length(); ++col)
+        // read robot movements
+        while(getline(input_file, input_line))
         {
-            if (ROUND_ROCK == new_rock[row][col])
-            {
-                auto rock_end_pos{ col };
-                while (rock_end_pos-1 >= 0 && EMPTY == new_rock[row][rock_end_pos-1])
-                {
-                    --rock_end_pos;
-                }
-                new_rock[row][col] = EMPTY;
-                new_rock[row][rock_end_pos] = ROUND_ROCK;
-            }
+            movements.append(input_line);
         }
+        input_file.close();
     }
 
-    return new_rock;
+    return { warehouse_layout, movements };
 }
-RockFormation tilt_south(const RockFormation &rock)
-{
-    RockFormation new_rock{ rock };
 
-    for (int row=new_rock.size()-1; row>=0; --row)
+std::pair<WareHouse, std::string> get_data(const std::string& file_path)
+{
+    WareHouse warehouse_layout{};
+    std::string movements{ };
+    std::fstream input_file;
+    input_file.open(file_path,std::ios::in);
+    if (input_file.is_open())
     {
-        for (int col=0; col<new_rock[row].length(); ++col)
+        std::string input_line;
+        // read warehouse layout
+        while(getline(input_file, input_line))
         {
-            if (ROUND_ROCK == new_rock[row][col])
-            {
-                auto rock_end_pos{ row };
-                while (rock_end_pos+1 < new_rock.size() && EMPTY == new_rock[rock_end_pos+1][col])
-                {
-                    ++rock_end_pos;
-                }
-                new_rock[row][col] = EMPTY;
-                new_rock[rock_end_pos][col] = ROUND_ROCK;
-            }
+            if (input_line == "") break;
+            warehouse_layout.push_back(input_line);
         }
-    }
 
-    return new_rock;
-}
-RockFormation tilt_east(const RockFormation &rock)
-{
-    RockFormation new_rock{ rock };
-
-    for (int row=0; row<new_rock.size(); ++row)
-    {
-        for (int col=new_rock[row].length()-1; col>-1; --col)
+        // read robot movements
+        while(getline(input_file, input_line))
         {
-            if (ROUND_ROCK == new_rock[row][col])
-            {
-                auto rock_end_pos{ col };
-                while (rock_end_pos+1 < new_rock[row].length() && EMPTY == new_rock[row][rock_end_pos+1])
-                {
-                    ++rock_end_pos;
-                }
-                new_rock[row][col] = EMPTY;
-                new_rock[row][rock_end_pos] = ROUND_ROCK;
-            }
+            movements.append(input_line);
         }
+        input_file.close();
     }
 
-    return new_rock;
-}
-
-void print_rock(const RockFormation &rock)
-{
-    std::cout << "\n";
-
-    for (const auto & row : rock)
-    {
-        std::cout << row << std::endl;
-    }
+    return { warehouse_layout, movements };
 }

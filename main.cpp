@@ -17,8 +17,8 @@
 // #include "15/sol_15.cpp"
 // #include "16/sol_16.cpp"
 // #include "17/sol_17.cpp"
-#include "18/sol_18.cpp"
-// #include "19/sol_19.cpp"
+// #include "18/sol_18.cpp"
+#include "19/sol_19.cpp"
 // #include "20/sol_20.cpp"
 // #include "21/sol_21.cpp"
 // #include "22/sol_22.cpp"
@@ -75,12 +75,12 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << sol_16_2(get_input_file_name(16)) << std::endl;
     std::cout << sol_17_1(get_input_file_name(17)) << std::endl;
     std::cout << sol_17_2(get_input_file_name(17)) << std::endl;
-    */
     std::cout << Day18::sol_18_1(get_input_file_name(18)) << std::endl;
     std::cout << Day18::sol_18_2(get_input_file_name(18)) << std::endl;
-    /*
+    */
     std::cout << Day19::sol_19_1(get_input_file_name(19)) << std::endl;
     std::cout << Day19::sol_19_2(get_input_file_name(19)) << std::endl;
+    /*
     std::cout << Day20::sol_20_1(get_input_file_name(20)) << std::endl;
     std::cout << Day20::sol_20_2(get_input_file_name(20)) << std::endl;
     std::cout << Day21::sol_21_1(get_input_file_name(21)) << std::endl;

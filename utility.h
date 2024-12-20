@@ -124,8 +124,9 @@ struct Point
     T y;
     Point(const T& x1, const T& y1) : x{x1}, y {y1} {};
     Point() : x{}, y{} {};
-    bool operator<(const Point& other) const;
-    bool operator==(const Point& other) const;
+    constexpr bool operator<(const Point& other) const;
+    constexpr bool operator==(const Point& other) const;
+    constexpr bool operator!=(const Point& other) const;
     struct HashFunction 
     {
         size_t operator()(const Point<T> &p) const;
@@ -141,7 +142,7 @@ size_t Point<T>::HashFunction::operator()(const Point<T>& pos) const
 }
 
 template<typename T>
-bool Point<T>::operator<(const Point& other) const
+constexpr bool Point<T>::operator<(const Point& other) const
 {
     if (this->x < other.x)
     {
@@ -155,15 +156,33 @@ bool Point<T>::operator<(const Point& other) const
 }
 
 template<typename T>
-bool Point<T>::operator==(const Point& other) const
+constexpr bool Point<T>::operator==(const Point& other) const
 {
     return this->x == other.x && this->y == other.y;
+}
+
+template<typename T>
+constexpr bool Point<T>::operator!=(const Point& other) const
+{
+    return !(*this == other);
 }
 
 template<typename T>
 Point<T> operator+(const Point<T> &p1, const Point<T> &p2)
 {
     return Point<T>{p1.x+p2.x, p1.y+p2.y};
+}
+
+template<typename T>
+Point<T> operator-(const Point<T> &p1, const Point<T> &p2)
+{
+    return Point<T>{p1.x-p2.x, p1.y-p2.y};
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream &out, const Point<T> &p)
+{
+    return out << p.x << ", " << p.y;
 }
 
 /**

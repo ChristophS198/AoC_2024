@@ -26,18 +26,6 @@ namespace Day21
 
     std::ostream& print(const std::vector<std::string> &garden, std::ostream& out);
 
-/*
-Input: 803A with wrong direction order
-^^^<AvvvA>^AvA
-<AAAv<A>>^A<vAAA>^AvA<^A>A<vA>^A
-v<<A>>^AAA<vA<A>>^AvAA<^A>Av<<A>A>^AAAvA<^A>A<vA>^Av<<A>^A>AvA^Av<<A>A>^AvA<^A>A
-
-Input: 803A with correct direction order
-<^^^AvvvA>^AvA
-v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
-<vA<AA>>^AvA<^A>AAAvA^Av<<A>A>^AAAvA<^A>A<vA>^Av<<A>^A>AvA^Av<<A>A>^AvA<^A>A
-*/
-
     TCompl sol_21_1(const std::string &file_path)
     {
         std::vector<std::string> code_vec = read_string_vec_from_file(file_path);
@@ -65,33 +53,13 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
     }
 
 
-    TCompl sol_21_2(const std::string &file_path)
+    int sol_21_2(const std::string &file_path)
     {
-        std::vector<std::string> code_vec = read_string_vec_from_file(file_path);
 
-        std::vector<std::vector<char>> door_pad{ {'7','8','9'}, {'4','5','6'}, {'1','2','3'}, {'-', '0', 'A'} };
-        std::vector<std::vector<char>> robot_pad{ {'-','^','A'}, {'<','v','>'} };
-
-        auto door_transit_map = get_transition_map(door_pad);
-        auto robot_transit_map = get_transition_map(robot_pad);
-        TCompl sum_complexity{};
-
-        for (auto door_code : code_vec) {
-            auto code = "A" + door_code;
-            auto robot_code = translate_to_code(door_transit_map, robot_transit_map, code);
-            std::cout << robot_code << std::endl;
-            for (int i=0; i<2; ++i) {
-                robot_code = "A" + robot_code;
-                robot_code = translate_to_code(robot_transit_map, robot_transit_map, robot_code);
-                // std::cout << robot_code << std::endl;
-                std::cout << i << std::endl;
-            }
-            sum_complexity += calc_complexity(door_code, robot_code);
-        }
-
-        return sum_complexity;
+        return 0;
     }
 
+    // too high: 192386
     std::string translate_to_code(const TransitMap& transit_map, const TransitMap& robot_map, const std::string& code)
     {
         std::string min_new_code{};
@@ -113,7 +81,6 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
                     auto t_id = get_unique_id(new_code.back(), transit_code[0]);
                     auto dist = robot_map.at(t_id).at(0).length();
                     if (dist < min_len) {
-                        // std::cout << min_len << " - " << dist << std::endl;
                         nxt_transit_code = transit_code;
                         dist = min_len;
                     }
@@ -137,8 +104,7 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
     {
         TransitMap shortest_path_map;
         auto start_tile = pad[start.x][start.y];
-        // static std::vector<std::pair<Point<int>,char>> dirs{ {{-1,0},'^'},{{0,1},'>'}, {{1,0},'v'},{{0,-1},'<'} };
-        static std::vector<std::pair<Point<int>,char>> dirs{ {{0,-1},'<'}, {{-1,0},'^'}, {{1,0},'v'}, {{0,1},'>'} };
+        static std::vector<std::pair<Point<int>,char>> dirs{ {{0,1},'>'},{{-1,0},'^'}, {{1,0},'v'},{{0,-1},'<'} };
         struct Node {
             TCoord p;
             std::string moves;

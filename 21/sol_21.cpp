@@ -12,31 +12,21 @@ namespace Day21
     using TransitMap = std::unordered_map<std::string, std::vector<std::string>>;
     using TCoord = Point<int>;
     using TCompl = std::uint64_t;
+    using Memo = std::vector<std::unordered_map<std::string,uint64_t>>;
 
-    constexpr char GARDEN_PLOT{ '.' };
-    constexpr char ROCK{ '#' };
-    constexpr char START_POS{ 'S' };
-    constexpr char REACHABLE{ 'O' };
+    constexpr char DEPTH_1{ 2 };
+    constexpr char DEPTH_2{ 25 };
 
     TransitMap get_transition_map(const KeyPad& pad);
     std::string get_unique_id(char start, char end);
-    std::string translate_to_code(const TransitMap& transit_map, const TransitMap& robot_map, const std::string& code);
+    std::uint64_t translate_numpad(const TransitMap& transit_map, const TransitMap& robot_map, const std::string& code, Memo& memo, int level);
     TCompl calc_complexity(const std::string& init_code, const std::string& end_code);
+    TCompl calc_complexity(const std::string& init_code, uint64_t len);
     bool is_valid_move(const std::string& move);
+    uint64_t translate_robo_code(const TransitMap& transit_map, const std::string& code, Memo& memo, int level);
 
     std::ostream& print(const std::vector<std::string> &garden, std::ostream& out);
 
-/*
-Input: 803A with wrong direction order
-^^^<AvvvA>^AvA
-<AAAv<A>>^A<vAAA>^AvA<^A>A<vA>^A
-v<<A>>^AAA<vA<A>>^AvAA<^A>Av<<A>A>^AAAvA<^A>A<vA>^Av<<A>^A>AvA^Av<<A>A>^AvA<^A>A
-
-Input: 803A with correct direction order
-<^^^AvvvA>^AvA
-v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
-<vA<AA>>^AvA<^A>AAAvA^Av<<A>A>^AAAvA<^A>A<vA>^Av<<A>^A>AvA^Av<<A>A>^AvA<^A>A
-*/
 
     TCompl sol_21_1(const std::string &file_path)
     {
@@ -48,22 +38,15 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
         auto door_transit_map = get_transition_map(door_pad);
         auto robot_transit_map = get_transition_map(robot_pad);
         TCompl sum_complexity{};
+        Memo memo(DEPTH_1+1, std::unordered_map<std::string,uint64_t>{});
 
         for (auto door_code : code_vec) {
-            auto code = "A" + door_code;
-            auto robot_code = translate_to_code(door_transit_map, robot_transit_map, code);
-            std::cout << robot_code << std::endl;
-            for (int i=0; i<2; ++i) {
-                robot_code = "A" + robot_code;
-                robot_code = translate_to_code(robot_transit_map, robot_transit_map, robot_code);
-                std::cout << robot_code << std::endl;
-            }
+            auto robot_code = translate_numpad(door_transit_map, robot_transit_map, door_code, memo, DEPTH_1);
             sum_complexity += calc_complexity(door_code, robot_code);
         }
 
         return sum_complexity;
     }
-
 
     TCompl sol_21_2(const std::string &file_path)
     {
@@ -75,63 +58,75 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
         auto door_transit_map = get_transition_map(door_pad);
         auto robot_transit_map = get_transition_map(robot_pad);
         TCompl sum_complexity{};
+        Memo memo(DEPTH_2+1, std::unordered_map<std::string,uint64_t>{});
 
         for (auto door_code : code_vec) {
-            auto code = "A" + door_code;
-            auto robot_code = translate_to_code(door_transit_map, robot_transit_map, code);
-            std::cout << robot_code << std::endl;
-            for (int i=0; i<2; ++i) {
-                robot_code = "A" + robot_code;
-                robot_code = translate_to_code(robot_transit_map, robot_transit_map, robot_code);
-                // std::cout << robot_code << std::endl;
-                std::cout << i << std::endl;
-            }
+            auto robot_code = translate_numpad(door_transit_map, robot_transit_map, door_code, memo, DEPTH_2);
             sum_complexity += calc_complexity(door_code, robot_code);
         }
 
         return sum_complexity;
     }
 
-    std::string translate_to_code(const TransitMap& transit_map, const TransitMap& robot_map, const std::string& code)
+    /*
+    For the robo-codes each string can be broken into a pattern A*****A, so we always start at an A and end at an A
+    This can be used in a recursive approach where each pattern A****A is calculated at most once per level and then 
+    stored in a buffer for later lookup (memoization)
+    */
+    uint64_t translate_robo_code(const TransitMap& transit_map, const std::string& code, Memo& memo, int level)
     {
-        std::string min_new_code{};
-        size_t min_size_new_code{ std::string::npos };
-        for (auto new_code : transit_map.at(get_unique_id(code[0], code[1]))) {
+        auto item = memo[level].find(code);
+        if (item != memo[level].end()) return memo[level][code];
+        if (level == 0) return memo[level][code] = code.length();
 
-            new_code += 'A';
+        char start = 'A';
+        uint64_t min_sum{ };
 
-            for (int i=1; i<code.length()-1; ++i) {
-                auto id = get_unique_id(code[i], code[i+1]);
-                std::string nxt_transit_code{ };
-                size_t min_len{ std::string::npos };
-                for (auto transit_code : transit_map.at(id)) {
-                    if (transit_code == "") {
-                        nxt_transit_code = transit_code;
-                        break;
-                    }
-                    // search for a next code block that starts with the same button press with which the last one ended
-                    auto t_id = get_unique_id(new_code.back(), transit_code[0]);
-                    auto dist = robot_map.at(t_id).at(0).length();
-                    if (dist < min_len) {
-                        // std::cout << min_len << " - " << dist << std::endl;
-                        nxt_transit_code = transit_code;
-                        dist = min_len;
-                    }
+        for (int i=0; i<code.length(); ++i) {
+            auto id = get_unique_id(start, code[i]);
 
-                }
-                new_code += (nxt_transit_code);
-                new_code += 'A';
+            size_t min_size_new_code{ std::string::npos };
+
+            // sometimes multiple transit codes of same length are valid -> test which results in a shorter code at the bottom level
+            for (auto transit_code : transit_map.at(id)) {
+                auto res = translate_robo_code(transit_map, transit_code + 'A', memo, level-1);
+                min_size_new_code = std::min(min_size_new_code, res);
             }
-
-            if (new_code.length() < min_size_new_code) {
-                min_size_new_code = new_code.length();
-                min_new_code = new_code;
-            }
+            min_sum += min_size_new_code;
+            start = code[i];
         }
 
-        return min_new_code;
+        return memo[level][code] = min_sum;
     }
 
+    std::uint64_t translate_numpad(const TransitMap& transit_map, const TransitMap& robot_map, const std::string& code, Memo& memo, int level)
+    {
+        auto item = memo[level].find(code);
+        if (item != memo[level].end()) return memo[level][code];
+        if (level == 0) return memo[level][code] = code.length();
+
+        char start = 'A';
+
+        std::uint64_t sum{ };
+
+        // iterate through each number pair and calculate the minimal code-representation at the bottom level through recursion
+        for (int i=0; i<code.length(); ++i) {
+            auto id = get_unique_id(start, code[i]);
+
+            size_t min_size_new_code{ std::string::npos };
+
+            // if multiple equally long transit codes exist -> test which results in a shorter code at the bottom level
+            for (auto transit_code : transit_map.at(id)) {
+                auto res = translate_robo_code(robot_map, transit_code + 'A', memo, level);
+                min_size_new_code = std::min(min_size_new_code, res);
+            }
+            start = code[i];
+            sum += min_size_new_code;
+        }
+        
+
+        return memo[level][code] = sum;
+    }
 
     TransitMap get_shortest_paths(const KeyPad& pad, TCoord start)
     {
@@ -209,9 +204,6 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
             }
         }
 
-        // for (auto [id, moves] : transit_map) {
-        //     std::cout << id << ": " << moves << std::endl;
-        // }
         return transit_map;
     }
 
@@ -227,8 +219,24 @@ v<<A>^AAA>A<vAAA>^AvA<^A>A<vA>^A
                 complexity = complexity*10ull + c - '0';
             }
         }
-        std::cout << std::to_string(complexity) << " * " << std::to_string(end_code.length()) << std::endl;
         complexity *= end_code.length();
+
+        return complexity;
+    }
+
+    TCompl calc_complexity(const std::string& init_code, uint64_t len)
+    {
+        TCompl complexity{ };
+        int i = 0;
+        while (init_code[i] == '0') ++i;
+        for (; i< init_code.length(); ++i) {
+            auto c = init_code[i];
+            if (std::isdigit(static_cast<unsigned char>(c)))
+            {
+                complexity = complexity*10ull + c - '0';
+            }
+        }
+        complexity *= len;
 
         return complexity;
     }

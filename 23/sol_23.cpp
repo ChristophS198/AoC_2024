@@ -20,15 +20,20 @@ namespace Day23
             for (const auto& com : com_set) name += com + '-';    
             return name.substr(0, name.length()-1);
         }
-        bool operator<(const TComNet& n) { return this->get_name() < n.get_name(); }
+        bool operator<(const TComNet& n) const { return this->get_name() < n.get_name(); }
+        bool operator==(const TComNet& n) const { return this->get_name() == n.get_name(); }
+        struct HashFunction 
+        {
+            size_t operator()(const TComNet &n) const { return std::hash<std::string>{}(n.get_name()); };
+        };
     };
     bool operator<(const TComNet& n, const TComNet& n2) {
         return n.get_name() < n2.get_name();
     }
 
     std::pair<TComMap, TConnectionSet>  get_computer_map(const std::string& file_path);
-    std::set<TComNet> get_com_nets_of_size_2(const TComMap& com_map, const TConnectionSet& conn_set);
-    std::set<TComNet> filter_com_nets(const std::set<TComNet>& com_nets, char s);
+    std::unordered_set<TComNet, TComNet::HashFunction> get_com_nets_of_size_2(const TComMap& com_map, const TConnectionSet& conn_set);
+    std::unordered_set<TComNet, TComNet::HashFunction> filter_com_nets(const std::unordered_set<TComNet, TComNet::HashFunction>& com_nets, char s);
     std::vector<TComNet> enlarge_net(const TComMap& com_map, const TConnectionSet& conn_set, TComNet com_net);
 
     int sol_23_1(const std::string &file_path)
@@ -48,24 +53,23 @@ namespace Day23
         auto com_nets = get_com_nets_of_size_2(com_map, conn_set);
 
         while (com_nets.size() > 1) {
-            std::set<TComNet> new_com_nets;
+            std::unordered_set<TComNet, TComNet::HashFunction> new_com_nets;
+            // To get the optimal result one has to enlarge iteratively and add each enlarged network to the set of networks
+            // which get enlarged in the next cycle
             for (const auto& com_net : com_nets) {
                 auto enlarged_com_net = enlarge_net(com_map, conn_set, com_net);
                 new_com_nets.insert(enlarged_com_net.begin(), enlarged_com_net.end());
             }
             com_nets = new_com_nets;
         }
+
         auto name = com_nets.begin()->get_name();
         std::replace( name.begin(), name.end(), '-', ',');
+        
         return name;
     }
 
-
-
-
-
     /*
-    To get the optimal result I have to enlarge iteratively and add each enlarged network to my set of networks
     Idea is to add one computer to an existing network, by checking if this computer is also connected to all
     other computers already in the network. 
     It is sufficient to check all connected computers of a single computer already in the network
@@ -100,9 +104,9 @@ namespace Day23
         return enlarged_nets;
     }
 
-    std::set<TComNet> filter_com_nets(const std::set<TComNet>& com_nets, char s)
+    std::unordered_set<TComNet, TComNet::HashFunction> filter_com_nets(const std::unordered_set<TComNet,TComNet::HashFunction>& com_nets, char s)
     {
-        std::set<TComNet> filtered_com_nets;
+        std::unordered_set<TComNet, TComNet::HashFunction> filtered_com_nets;
 
         for (const auto& com_net : com_nets) {
             for (const auto& com : com_net.com_set) {
@@ -116,9 +120,9 @@ namespace Day23
         return filtered_com_nets;
     }
 
-    std::set<TComNet> get_com_nets_of_size_2(const TComMap& com_map, const TConnectionSet& conn_set)
+    std::unordered_set<TComNet, TComNet::HashFunction> get_com_nets_of_size_2(const TComMap& com_map, const TConnectionSet& conn_set)
     {
-        std::set<TComNet> com_nets;
+        std::unordered_set<TComNet, TComNet::HashFunction> com_nets;
 
         for (const auto& [com, connected_coms] : com_map) {
             if (connected_coms.size() >= 2) {

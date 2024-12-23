@@ -92,4 +92,6 @@ The LAN party posters say that the password to get into the LAN party is the nam
 
 What is the password to get into the LAN party?
 
-Answer:
+Your puzzle answer was **az,ed,hz,it,ld,nh,pc,td,ty,ux,wc,yg,zz**
+
+Both parts of this puzzle are complete! They provide two gold stars: **

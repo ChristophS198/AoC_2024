@@ -15,9 +15,10 @@ set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
 
-# set c++ standard to c++-17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED On)
+# set c++ standard to c++-20
+# set(CMAKE_CXX_STANDARD 20)
+# set(CMAKE_CXX_STANDARD_REQUIRED On)
+target_compile_features(${EXECUTABLE_NAME} PUBLIC cxx_std_20)
 
 
 # Enable warnings

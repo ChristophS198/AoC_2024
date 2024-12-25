@@ -7,7 +7,7 @@
 // #include "5/sol_5.cpp"
 // #include "6/sol_6.cpp"
 // #include "7/sol_7.cpp"
-// day 8 is solved with python
+#include "8/sol_8.cpp"
 // #include "9/sol_9.cpp"
 // #include "10/sol_10.cpp"
 // #include "11/sol_11.cpp"
@@ -24,7 +24,7 @@
 // #include "22/sol_22.cpp"
 // #include "23/sol_23.cpp"
 // #include "24/sol_24.cpp"
-#include "25/sol_25.cpp"
+// #include "25/sol_25.cpp"
 #include <filesystem>
 
 std::string get_input_file_name(int day)
@@ -53,9 +53,11 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << sol_5_2(get_input_file_name(5)) << std::endl;
     std::cout << sol_6_1(get_input_file_name(6)) << std::endl;
     std::cout << sol_6_2(get_input_file_name(6)) << std::endl;
-    std::cout << sol_7_1(get_input_file_name(7)) << std::endl;
-    std::cout << sol_7_2(get_input_file_name(7)) << std::endl;
+    std::cout << Day7::sol_7_1(get_input_file_name(7)) << std::endl;
+    std::cout << Day7::sol_7_2(get_input_file_name(7)) << std::endl;
     */
+    std::cout << Day8::sol_8_1(get_input_file_name(8)) << std::endl;
+    std::cout << Day8::sol_8_2(get_input_file_name(8)) << std::endl;
     /*
     std::cout << sol_9_1(get_input_file_name(9)) << std::endl;
     std::cout << sol_9_2(get_input_file_name(9)) << std::endl;
@@ -89,9 +91,9 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << Day23::sol_23_2(get_input_file_name(23)) << std::endl;
     std::cout << Day24::sol_24_1(get_input_file_name(24)) << std::endl;
     std::cout << Day24::sol_24_2(get_input_file_name(24)) << std::endl;
-    */
     std::cout << Day25::sol_25_1(get_input_file_name(25)) << std::endl;
     std::cout << Day25::sol_25_2(get_input_file_name(25)) << std::endl;
+    */
 
     return 0;
 }

@@ -452,6 +452,29 @@ std::vector<std::string> read_string_vec_from_file(const std::string& file_path)
 }
 
 /**
+ * @brief Reads in a file and returns content of file as a single conatenated string
+ * 
+ * @param file_path 
+ * @return std::vector<std::string> 
+ */
+std::string read_single_str_from_file(const std::string& file_path)
+{
+    std::string string_concat{};
+    std::fstream input_file;
+    input_file.open(file_path,std::ios::in);
+    if (input_file.is_open())
+    {
+        std::string input_line;
+        while(getline(input_file, input_line))
+        {
+            string_concat += input_line;
+        }
+        input_file.close();
+    }
+    return string_concat;
+}
+
+/**
  * @brief Get the next number written in a string after a substring
  * 
  * @tparam T type of number that is returned

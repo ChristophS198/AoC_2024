@@ -11,8 +11,8 @@
 // #include "9/sol_9.cpp"
 // #include "10/sol_10.cpp"
 // #include "11/sol_11.cpp"
-#include "12/sol_12.cpp"
-// #include "13/sol_13.cpp"
+// #include "12/sol_12.cpp"
+#include "13/sol_13.cpp"
 // #include "14/sol_14.cpp"
 // #include "15/sol_15.cpp"
 // #include "16/sol_16.cpp"
@@ -63,20 +63,20 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << Day10::sol_10_2(get_input_file_name(10)) << std::endl;
     std::cout << Day11::sol_11_1(get_input_file_name(11)) << std::endl;
     std::cout << Day11::sol_11_2(get_input_file_name(11)) << std::endl;
-    */
     std::cout << Day12::sol_12_1(get_input_file_name(12)) << std::endl;
     std::cout << Day12::sol_12_2(get_input_file_name(12)) << std::endl;
+    */
+    std::cout << Day13::sol_13_1(get_input_file_name(13)) << std::endl;
+    std::cout << Day13::sol_13_2(get_input_file_name(13)) << std::endl;
     /*
-    std::cout << sol_13_1(get_input_file_name(13)) << std::endl;
-    std::cout << sol_13_2(get_input_file_name(13)) << std::endl;
-    std::cout << sol_14_1(get_input_file_name(14)) << std::endl;
-    std::cout << sol_14_2(get_input_file_name(14)) << std::endl;
-    std::cout << sol_15_1(get_input_file_name(15)) << std::endl;
-    std::cout << sol_15_2(get_input_file_name(15)) << std::endl;
-    std::cout << sol_16_1(get_input_file_name(16)) << std::endl;
-    std::cout << sol_16_2(get_input_file_name(16)) << std::endl;
-    std::cout << sol_17_1(get_input_file_name(17)) << std::endl;
-    std::cout << sol_17_2(get_input_file_name(17)) << std::endl;
+    std::cout << Day14::sol_14_1(get_input_file_name(14)) << std::endl;
+    std::cout << Day14::sol_14_2(get_input_file_name(14)) << std::endl;
+    std::cout << Day15::sol_15_1(get_input_file_name(15)) << std::endl;
+    std::cout << Day15::sol_15_2(get_input_file_name(15)) << std::endl;
+    std::cout << Day16::sol_16_1(get_input_file_name(16)) << std::endl;
+    std::cout << Day16::sol_16_2(get_input_file_name(16)) << std::endl;
+    std::cout << Day17::sol_17_1(get_input_file_name(17)) << std::endl;
+    std::cout << Day17::sol_17_2(get_input_file_name(17)) << std::endl;
     std::cout << Day18::sol_18_1(get_input_file_name(18)) << std::endl;
     std::cout << Day18::sol_18_2(get_input_file_name(18)) << std::endl;
     std::cout << Day19::sol_19_1(get_input_file_name(19)) << std::endl;

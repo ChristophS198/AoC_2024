@@ -12,10 +12,10 @@
 // #include "10/sol_10.cpp"
 // #include "11/sol_11.cpp"
 // #include "12/sol_12.cpp"
-#include "13/sol_13.cpp"
+// #include "13/sol_13.cpp"
 // #include "14/sol_14.cpp"
 // #include "15/sol_15.cpp"
-// #include "16/sol_16.cpp"
+#include "16/sol_16.cpp"
 // #include "17/sol_17.cpp"
 // #include "18/sol_18.cpp"
 // #include "19/sol_19.cpp"
@@ -65,16 +65,16 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << Day11::sol_11_2(get_input_file_name(11)) << std::endl;
     std::cout << Day12::sol_12_1(get_input_file_name(12)) << std::endl;
     std::cout << Day12::sol_12_2(get_input_file_name(12)) << std::endl;
-    */
     std::cout << Day13::sol_13_1(get_input_file_name(13)) << std::endl;
     std::cout << Day13::sol_13_2(get_input_file_name(13)) << std::endl;
-    /*
     std::cout << Day14::sol_14_1(get_input_file_name(14)) << std::endl;
     std::cout << Day14::sol_14_2(get_input_file_name(14)) << std::endl;
     std::cout << Day15::sol_15_1(get_input_file_name(15)) << std::endl;
     std::cout << Day15::sol_15_2(get_input_file_name(15)) << std::endl;
     std::cout << Day16::sol_16_1(get_input_file_name(16)) << std::endl;
+    */
     std::cout << Day16::sol_16_2(get_input_file_name(16)) << std::endl;
+    /*
     std::cout << Day17::sol_17_1(get_input_file_name(17)) << std::endl;
     std::cout << Day17::sol_17_2(get_input_file_name(17)) << std::endl;
     std::cout << Day18::sol_18_1(get_input_file_name(18)) << std::endl;

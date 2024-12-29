@@ -4,7 +4,7 @@
 
 #include "../utility.h"
 
-namespace {
+namespace Day15{
 
     enum TDir {
         Up, 
